@@ -7,10 +7,12 @@ single resource that cannot be controlled by two requests simultaneously
 """
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, status
+from fastapi.staticfiles import StaticFiles
 
-from .device import ThunderDevice
+from .device import DeviceNotFoundError, ThunderDevice
 from .launcher import Launcher, NotEnoughMissilesError
 
 _device = ThunderDevice()
@@ -19,11 +21,17 @@ _launcher = Launcher(_device)
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
-    # lifespan is FastAPI's recommended startup/shutdown hook (replaces deprecated @on_event).
-    # The USB connection is opened once when the server starts and closed when it stops.
-    _device.connect()
     yield
     _device.disconnect()
+
+
+def _require_device() -> None:
+    """Connect lazily; raise 503 if the physical device is not present."""
+    if not _device.connected:
+        try:
+            _device.connect()
+        except DeviceNotFoundError as exc:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
 
 
 app = FastAPI(
@@ -32,8 +40,16 @@ app = FastAPI(
     lifespan=_lifespan,
 )
 
+app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 
-@app.get("/", summary="Device status")
+
+@app.get("/", summary="UI", include_in_schema=False)
+def index():
+    from fastapi.responses import FileResponse
+    return FileResponse(Path(__file__).parent / "static" / "index.html")
+
+
+@app.get("/status", summary="Device status")
 def get_status() -> dict:
     """Return the current device state: connection status, missile count, and estimated angles."""
     return _launcher.state
@@ -42,6 +58,7 @@ def get_status() -> dict:
 @app.post("/park", summary="Park the launcher at the bottom-left hard stop")
 async def park() -> dict:
     """Drive the launcher to its physical home position, resetting estimated angles."""
+    _require_device()
     await _launcher.park()
     return _launcher.state
 
@@ -54,6 +71,7 @@ async def move(direction: str, duration: int = 500) -> dict:
     Does not update the estimated yaw/pitch angles. Use `/yaw` and `/pitch` for
     angle-aware positioning.
     """
+    _require_device()
     try:
         await _launcher.move(direction, duration)
     except ValueError as exc:
@@ -68,6 +86,7 @@ async def yaw(angle: int) -> dict:
     The angle is clamped to the physical range [-135, 135].
     Movement is relative to the last known position; call `/park` first for accuracy.
     """
+    _require_device()
     await _launcher.yaw(angle)
     return _launcher.state
 
@@ -79,6 +98,7 @@ async def pitch(angle: int) -> dict:
     The angle is clamped to the physical range [-5, 45].
     Movement is relative to the last known position; call `/park` first for accuracy.
     """
+    _require_device()
     await _launcher.pitch(angle)
     return _launcher.state
 
@@ -89,6 +109,7 @@ async def fire(shots: int = 1) -> dict:
     Fire the specified number of shots sequentially.
     Returns 422 if there are not enough missiles remaining.
     """
+    _require_device()
     try:
         await _launcher.fire(shots)
     except (ValueError, NotEnoughMissilesError) as exc:
@@ -99,6 +120,7 @@ async def fire(shots: int = 1) -> dict:
 @app.post("/led", summary="Toggle the LED ring on the launcher base")
 def led(on: bool) -> dict:
     """Turn the blue LED ring on (`on=true`) or off (`on=false`)."""
+    _require_device()
     _launcher.led(on)
     return _launcher.state
 
