@@ -1,4 +1,4 @@
-# dream-cheeky-thunder
+# dream-cheeky-thunder 🚀
 
 A self-hosted REST API to control the [Dream Cheeky USB Thunder missile launcher](http://www.dreamcheeky.com/thunder-missile-launcher) over HTTP.
 
@@ -6,9 +6,11 @@ A self-hosted REST API to control the [Dream Cheeky USB Thunder missile launcher
 
 The API is built with Python and FastAPI, packaged as a Docker image. Once running, you can aim and fire the launcher from any HTTP client, script, or browser. A web UI is served at `http://localhost:8000`.
 
+![Web UI](docs/screenshot.jpg)
+
 ---
 
-## Hardware
+## 🔧 Hardware
 
 | Spec | Value |
 |------|-------|
@@ -21,9 +23,9 @@ The API is built with Python and FastAPI, packaged as a Docker image. Once runni
 
 ---
 
-## Documentation
+## 📚 Documentation
 
-- [Setup: Linux](docs/setup-linux.md)
-- [Setup: Windows (Docker Desktop + WSL2)](docs/setup-windows-wsl2.md)
-- [API Reference](docs/api.md)
-- [Development](docs/development.md)
+- 🐧 [Setup: Linux](docs/setup-linux.md)
+- 🪟 [Setup: Windows (Docker Desktop + WSL2)](docs/setup-windows-wsl2.md)
+- 📡 [API Reference](docs/api.md)
+- 🏗️ [Development](docs/development.md)

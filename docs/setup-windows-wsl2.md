@@ -1,8 +1,8 @@
-# Setup: Windows (Docker Desktop + WSL2)
+# 🪟 Setup: Windows (Docker Desktop + WSL2)
 
 Docker on WSL2 cannot access USB devices directly. The USB device must be forwarded from Windows into the WSL2 kernel using [usbipd-win][usbipd] before Docker can reach it.
 
-## How it works
+## ⚙️ How it works
 
 ```
 Physical USB device
@@ -16,14 +16,14 @@ Physical USB device
   Docker container  <-- reaches it via the devices mount in compose.yaml
 ```
 
-## Prerequisites
+## ✅ Prerequisites
 
 - Docker Desktop with WSL2 backend
 - The launcher plugged into a USB port
 
 ---
 
-## Installation
+## 📦 Installation
 
 **1. Install usbipd-win** (PowerShell):
 
@@ -74,7 +74,7 @@ The web UI is available at `http://localhost:8000` and the API at `http://localh
 
 ---
 
-## Keeping the device attached across reboots
+## 🔁 Keeping the device attached across reboots
 
 By default, `usbipd attach` must be re-run after every Windows reboot or USB reconnect.
 
@@ -96,13 +96,13 @@ This re-attaches on reconnect but still requires a manual run after a Windows re
 
 ---
 
-## Troubleshooting
+## 🔧 Troubleshooting
 
-**`usbipd` not found in PowerShell**
+**🔍 `usbipd` not found in PowerShell**
 
 Install it with `winget install usbipd` and open a new terminal.
 
-**Device not visible in WSL2**
+**🔍 Device not visible in WSL2**
 
 ```bash
 cat /sys/bus/usb/devices/*/idVendor | grep 2123
@@ -110,7 +110,7 @@ cat /sys/bus/usb/devices/*/idVendor | grep 2123
 
 If nothing appears, the device is not attached. Re-run step 3 from PowerShell. Make sure the launcher is plugged in before attaching.
 
-**Permission denied in the container (`USBError: [Errno 13]`)**
+**🔒 Permission denied in the container (`USBError: [Errno 13]`)**
 
 The udev rule is missing or was applied before the device was plugged in:
 
@@ -119,7 +119,7 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 # Then unplug and replug the launcher, and re-run usbipd attach
 ```
 
-**Device visible in WSL2 but container returns 503**
+**⚠️ Device visible in WSL2 but container returns 503**
 
 Verify the container can open the device:
 

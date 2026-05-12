@@ -134,7 +134,8 @@ class Launcher:
 
     def led(self, on: bool) -> None:
         """Toggle the blue LED ring on the launcher base."""
-        self._send(Cmd.LED, Led.ON if on else Led.OFF)
+        # LED uses HID report ID 0x03, distinct from the movement report (0x02).
+        self._device.send([0x03, Led.ON if on else Led.OFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
 
     def reload(self) -> None:
         """Reset the missile counter after manually reloading the launcher."""

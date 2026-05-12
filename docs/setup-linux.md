@@ -1,11 +1,11 @@
-# Setup: Linux
+# 🐧 Setup: Linux
 
-## Prerequisites
+## ✅ Prerequisites
 
 - Docker and Docker Compose
 - The launcher plugged into a USB port
 
-## Installation
+## 📦 Installation
 
 **1. Install the udev rule** (one-time):
 
@@ -26,9 +26,9 @@ The web UI is available at `http://localhost:8000` and the API at `http://localh
 
 ---
 
-## Troubleshooting
+## 🔧 Troubleshooting
 
-**Device not found**
+**🔍 Device not found**
 
 Verify the launcher is visible to the OS:
 
@@ -42,7 +42,7 @@ If it does not appear, try a different USB port or cable. If `lsusb` is not avai
 sudo apt install usbutils
 ```
 
-**Permission denied (`USBError: [Errno 13]`)**
+**🔒 Permission denied (`USBError: [Errno 13]`)**
 
 The udev rule may not have been applied yet, or was applied before the device was plugged in:
 
@@ -51,7 +51,7 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 # Then unplug and replug the launcher
 ```
 
-**Container sees the device but returns 503**
+**⚠️ Container sees the device but returns 503**
 
 Verify the container can open the device:
 

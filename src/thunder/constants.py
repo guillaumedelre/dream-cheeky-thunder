@@ -25,7 +25,6 @@ class Cmd:
     """Raw command bytes sent in the USB control transfer payload (byte index 1)."""
     DOWN = 0x01
     UP = 0x02
-    LED = 0x03   # Controls the blue LED ring on the base
     LEFT = 0x04
     RIGHT = 0x08
     FIRE = 0x10

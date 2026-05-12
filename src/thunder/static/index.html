@@ -2,264 +2,525 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Thunder Control</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>THUNDER CONTROL</title>
   <style>
     :root {
-      --bg: #0d1117;
-      --surface: #161b22;
-      --border: #30363d;
-      --text: #e6edf3;
-      --muted: #7d8590;
-      --accent: #f78166;
-      --accent-dim: #3d1f1a;
-      --green: #3fb950;
-      --red: #f85149;
+      --bg:       #050300;
+      --surface:  #0b0800;
+      --panel:    #0f0b00;
+      --brdr:     #221500;
+      --brdr-hi:  #4a3000;
+      --txt:      #c87e00;
+      --txt-hi:   #ffcc40;
+      --txt-dim:  #362200;
+      --txt-mute: #5a3e00;
+      --amber:    #ffaa00;
+      --green:    #38e060;
+      --red:      #ff2800;
+      --red-hi:   #ff5530;
+      --red-dim:  #1f0400;
+      --glow:        0 0 10px rgba(255,160,0,.35), 0 0 24px rgba(255,160,0,.12);
+      --glow-red:    0 0 10px rgba(255,40,0,.5),   0 0 24px rgba(255,40,0,.15);
+      --glow-green:  0 0  8px rgba(56,224,96,.4),  0 0 20px rgba(56,224,96,.12);
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    /* ── Animations ── */
+    @keyframes scan-move {
+      from { transform: translateY(-80px); }
+      to   { transform: translateY(100vh); }
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.1} }
+    @keyframes boot {
+      0%   { opacity:0; transform:scaleY(.04) }
+      25%  { opacity:1; transform:scaleY(.04) }
+      55%  { transform:scaleY(1) }
+      100% { transform:scaleY(1) }
+    }
+    @keyframes spin-slow {
+      from { transform:rotate(0deg) } to { transform:rotate(360deg) }
+    }
+    @keyframes spin-rev {
+      from { transform:rotate(0deg) } to { transform:rotate(-360deg) }
+    }
+    @keyframes fire-pulse {
+      0%,100% { box-shadow: var(--glow-red), inset 0 0 18px rgba(255,40,0,.08) }
+      50%     { box-shadow: 0 0 22px rgba(255,40,0,.65), 0 0 50px rgba(255,40,0,.2), inset 0 0 28px rgba(255,40,0,.15) }
+    }
+
+    * { box-sizing:border-box; margin:0; padding:0 }
 
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background:
+        radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,.75) 100%),
+        linear-gradient(rgba(255,150,0,.035) 1px, transparent 1px) center / 36px 36px,
+        linear-gradient(90deg, rgba(255,150,0,.035) 1px, transparent 1px) center / 36px 36px,
+        var(--bg);
+      color: var(--txt);
+      font-family: 'Courier New', Courier, monospace;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 1.5rem 1rem;
-      gap: 1.5rem;
+      padding: 1rem;
+      gap: .75rem;
+      animation: boot .7s cubic-bezier(.2,0,.3,1) both;
+      overflow-x: hidden;
+      overflow-y: hidden;
     }
 
+    /* scanline overlay */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(
+        0deg, transparent 0 3px, rgba(0,0,0,.18) 3px 4px
+      );
+      pointer-events: none;
+      z-index: 9000;
+    }
+
+    /* sweep */
+    body::after {
+      content: '';
+      position: fixed; left:0; right:0;
+      height: 80px;
+      background: linear-gradient(transparent, rgba(255,150,0,.04), transparent);
+      animation: scan-move 8s linear infinite;
+      pointer-events: none;
+      z-index: 9001;
+    }
+
+    /* ── Header ── */
+    .hdr {
+      width: 100%; max-width: 380px;
+      text-align: center;
+      padding: .2rem 0 .1rem;
+    }
+    .hdr-bar {
+      display: flex; align-items: center; gap: .6rem;
+      margin-bottom: .25rem;
+    }
+    .hdr-line {
+      flex: 1; height: 1px;
+      background: linear-gradient(to right, transparent, var(--brdr-hi));
+    }
+    .hdr-line:last-child {
+      background: linear-gradient(to left, transparent, var(--brdr-hi));
+    }
     h1 {
-      font-size: 1rem;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--muted);
+      font-size: .82rem; font-weight: normal;
+      letter-spacing: .4em;
+      color: var(--txt-hi);
+      text-shadow: var(--glow);
+    }
+    .hdr-sub {
+      font-size: .55rem; letter-spacing: .18em;
+      color: var(--txt-dim);
     }
 
-    /* Status bar */
-    #status {
-      display: flex;
-      gap: 1.25rem;
-      align-items: center;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.65rem 1.1rem;
-      font-size: 0.82rem;
-      width: 100%;
-      max-width: 360px;
+    /* ── Panel shell ── */
+    .panel {
+      position: relative;
+      background: var(--panel);
+      border: 1px solid var(--brdr);
+      width: 100%; max-width: 380px;
+    }
+    /* top-left bracket */
+    .panel::before {
+      content: '';
+      position: absolute; top:-2px; left:-2px;
+      width:14px; height:14px;
+      border-top: 2px solid var(--txt);
+      border-left: 2px solid var(--txt);
+    }
+    /* bottom-right bracket */
+    .panel::after {
+      content: '';
+      position: absolute; bottom:-2px; right:-2px;
+      width:14px; height:14px;
+      border-bottom: 2px solid var(--txt);
+      border-right: 2px solid var(--txt);
+    }
+    .p-tag {
+      position: absolute; top:-.6rem; left:.9rem;
+      background: var(--bg);
+      padding: 0 .35rem;
+      font-size: .55rem; letter-spacing: .2em;
+      color: var(--txt-mute);
     }
 
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--red);
-      flex-shrink: 0;
-      transition: background 0.3s;
-    }
-    .dot.connected { background: var(--green); }
-
-    .status-item { color: var(--muted); }
-    .status-item span { color: var(--text); font-weight: 500; }
-
-    /* D-pad */
-    #dpad {
+    /* ── Status ── */
+    .status-row {
       display: grid;
-      grid-template-areas:
-        ". up ."
-        "left . right"
-        ". down .";
-      gap: 6px;
+      grid-template-columns: auto 1fr 1fr 1fr;
+      align-items: center;
+      gap: .4rem .8rem;
+      padding: .7rem .8rem;
+    }
+    .dot-cell { display:flex; align-items:center; }
+    .dot {
+      width:9px; height:9px; border-radius:50%;
+      background: var(--red);
+      box-shadow: var(--glow-red);
+      animation: blink 1.3s ease-in-out infinite;
+      transition: background .4s, box-shadow .4s;
+    }
+    .dot.connected {
+      background: var(--green);
+      box-shadow: var(--glow-green);
+      animation: none;
+    }
+    .sf { display:flex; flex-direction:column; gap:.1rem; }
+    .sf-l {
+      font-size:.52rem; letter-spacing:.12em;
+      color: var(--txt-dim);
+    }
+    .sf-v {
+      font-size:.78rem;
+      color: var(--txt-hi);
+      text-shadow: var(--glow);
     }
 
+    /* ── Targeting / D-pad ── */
+    .target-body {
+      display: flex; justify-content: center;
+      padding: .9rem .8rem;
+    }
+    .reticle {
+      position: relative;
+      width: 228px; height: 228px;
+    }
+
+    /* rings */
+    .r-ring-outer {
+      position:absolute; inset:0;
+      border-radius:50%;
+      border:1px solid var(--brdr-hi);
+      box-shadow: inset 0 0 30px rgba(255,150,0,.04);
+    }
+    .r-ring-mid {
+      position:absolute; inset:14px;
+      border-radius:50%;
+      border:1px dashed var(--brdr);
+    }
+    .r-spin-1 {
+      position:absolute; inset:26px;
+      border-radius:50%;
+      border: 1px solid transparent;
+      border-top-color: var(--txt-mute);
+      border-right-color: var(--txt-mute);
+      animation: spin-slow 14s linear infinite;
+    }
+    .r-spin-2 {
+      position:absolute; inset:38px;
+      border-radius:50%;
+      border: 1px solid transparent;
+      border-bottom-color: var(--brdr-hi);
+      animation: spin-rev 20s linear infinite;
+    }
+
+    /* crosshair lines */
+    .r-h, .r-v { position:absolute; background:var(--brdr-hi); }
+    .r-h { left:16px; right:16px; height:1px; top:50%; transform:translateY(-50%); }
+    .r-v { top:16px; bottom:16px; width:1px; left:50%; transform:translateX(-50%); }
+
+    /* corner ticks */
+    .r-deg {
+      position:absolute;
+      font-size:.46rem; letter-spacing:0;
+      color: var(--txt-dim);
+    }
+    .r-deg-n { top:28px; left:50%; transform:translateX(-50%); }
+    .r-deg-s { bottom:28px; left:50%; transform:translateX(-50%); }
+    .r-deg-e { right:28px; top:50%; transform:translateY(-50%); }
+    .r-deg-w { left:28px; top:50%; transform:translateY(-50%); }
+
+    /* center diamond */
+    .r-ctr {
+      position:absolute;
+      width:10px; height:10px;
+      background: var(--amber);
+      box-shadow: var(--glow);
+      top:50%; left:50%;
+      transform:translate(-50%,-50%) rotate(45deg);
+    }
+
+    /* D-pad buttons */
     .dpad-btn {
-      width: 68px;
-      height: 68px;
+      position:absolute;
+      width:52px; height:52px;
       background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      font-size: 1.3rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      user-select: none;
-      -webkit-user-select: none;
-      touch-action: none;
-      transition: background 0.1s, border-color 0.1s;
+      border:1px solid var(--brdr-hi);
+      color: var(--txt);
+      font-size:.9rem;
+      cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      user-select:none; -webkit-user-select:none;
+      touch-action:none;
+      transition: background .1s, color .1s, border-color .1s;
     }
-
+    .dpad-btn:hover {
+      background: rgba(255,160,0,.07);
+      border-color: var(--txt);
+    }
     .dpad-btn.active {
-      background: var(--accent-dim);
-      border-color: var(--accent);
-      color: var(--accent);
+      background: rgba(255,160,0,.2);
+      border-color: var(--amber);
+      color: var(--amber);
+      filter: drop-shadow(0 0 6px rgba(255,160,0,.5));
     }
+    [data-dir="up"]    { top:6px;    left:50%; transform:translateX(-50%); }
+    [data-dir="down"]  { bottom:6px; left:50%; transform:translateX(-50%); }
+    [data-dir="left"]  { left:6px;   top:50%;  transform:translateY(-50%); }
+    [data-dir="right"] { right:6px;  top:50%;  transform:translateY(-50%); }
 
-    [data-dir="up"]    { grid-area: up; }
-    [data-dir="left"]  { grid-area: left; }
-    [data-dir="right"] { grid-area: right; }
-    [data-dir="down"]  { grid-area: down; }
-
-    /* Sliders */
-    #sliders {
-      width: 100%;
-      max-width: 360px;
-      display: flex;
-      flex-direction: column;
-      gap: 0.9rem;
+    /* ── Angle gauges ── */
+    .gauges-body {
+      display:flex; flex-direction:column;
+      gap:.75rem;
+      padding:.85rem .8rem;
     }
-
-    .slider-row {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
+    .g-row {
+      display:flex; align-items:center; gap:.6rem;
     }
-
-    .slider-label {
-      font-size: 0.75rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      width: 36px;
-      flex-shrink: 0;
+    .g-lbl {
+      font-size:.55rem; letter-spacing:.14em;
+      color: var(--txt-dim);
+      width:38px; flex-shrink:0;
     }
+    .g-track { flex:1; position:relative; }
 
     input[type="range"] {
-      flex: 1;
-      accent-color: var(--accent);
-      cursor: pointer;
-      height: 4px;
+      -webkit-appearance:none; appearance:none;
+      width:100%; height:3px;
+      background: var(--brdr-hi);
+      outline:none; cursor:pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance:none;
+      width:13px; height:22px;
+      background: var(--amber);
+      box-shadow: 0 0 8px rgba(255,160,0,.6);
+      cursor:pointer;
+      clip-path: polygon(50% 0%,100% 28%,100% 72%,50% 100%,0% 72%,0% 28%);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width:13px; height:22px;
+      background: var(--amber);
+      border:none; cursor:pointer;
+    }
+    input[type="range"]:focus { outline:none; }
+
+    /* colored track fill via background gradient — approximated via JS on input */
+    .g-val {
+      font-size:.78rem;
+      width:44px; text-align:right; flex-shrink:0;
+      color: var(--txt-hi);
+      text-shadow: var(--glow);
     }
 
-    .slider-value {
-      font-size: 0.82rem;
-      font-weight: 500;
-      width: 40px;
-      text-align: right;
-      flex-shrink: 0;
+    /* ── Secondary controls ── */
+    .ctrl-body {
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:.5rem;
+      padding:.75rem .8rem;
     }
-
-    /* Action buttons */
-    #actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.65rem;
-      width: 100%;
-      max-width: 360px;
-    }
-
     .btn {
-      padding: 0.7rem;
-      border-radius: 8px;
-      border: 1px solid var(--border);
+      padding:.55rem .3rem;
+      border:1px solid var(--brdr-hi);
       background: var(--surface);
-      color: var(--text);
-      font-size: 0.875rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.1s, border-color 0.1s;
+      color: var(--txt);
+      font-family:inherit;
+      font-size:.62rem; letter-spacing:.12em;
+      text-transform:uppercase;
+      cursor:pointer;
+      transition: background .1s, border-color .1s;
+    }
+    .btn:hover  { border-color:var(--txt); background:rgba(255,160,0,.07); }
+    .btn:active { background:rgba(255,160,0,.15); }
+    #led-btn.on {
+      color: var(--amber); border-color:var(--amber);
+      background: rgba(255,160,0,.1);
+      filter: drop-shadow(0 0 5px rgba(255,160,0,.4));
     }
 
-    .btn:hover  { border-color: var(--muted); }
-    .btn:active { background: #21262d; }
-
+    /* ── Fire ── */
+    .fire-body { padding:.75rem .8rem; }
     #fire-btn {
-      grid-column: 1 / -1;
-      background: var(--accent-dim);
-      border-color: var(--accent);
-      color: var(--accent);
-      font-size: 0.95rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 0.9rem;
+      width:100%; padding:1rem;
+      background: var(--red-dim);
+      border:1px solid var(--red);
+      color: var(--red-hi);
+      font-family:inherit;
+      font-size:.95rem; letter-spacing:.35em;
+      text-transform:uppercase;
+      cursor:pointer;
+      animation: fire-pulse 2.2s ease-in-out infinite;
+      transition: background .1s, letter-spacing .08s;
+      text-shadow: 0 0 10px rgba(255,80,40,.5);
     }
-    #fire-btn:hover  { background: #5a2a24; }
-    #fire-btn:active { background: #7a3a34; }
+    #fire-btn:hover {
+      background: rgba(255,40,0,.2);
+      letter-spacing:.5em;
+      animation: none;
+      box-shadow: 0 0 24px rgba(255,40,0,.45), inset 0 0 30px rgba(255,40,0,.12);
+    }
+    #fire-btn:active {
+      background: rgba(255,40,0,.35);
+      transform: scale(.99);
+      animation: none;
+    }
 
-    #led-btn.on { color: #f0c060; border-color: #f0c060; }
+    /* ── Divider between sections ── */
+    .sect-div {
+      width:100%; max-width:380px;
+      display:flex; align-items:center; gap:.5rem;
+    }
+    .sect-div::before, .sect-div::after {
+      content:''; flex:1; height:1px;
+      background: var(--brdr);
+    }
+    .sect-div-txt {
+      font-size:.5rem; letter-spacing:.2em;
+      color: var(--txt-dim);
+    }
 
-    /* Toast */
+    /* ── Toast ── */
     #toast {
-      position: fixed;
-      bottom: 1.5rem;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #21262d;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 0.45rem 0.9rem;
-      font-size: 0.8rem;
-      color: var(--red);
-      opacity: 0;
-      transition: opacity 0.2s;
-      pointer-events: none;
-      white-space: nowrap;
+      position:fixed; bottom:1.5rem; left:50%;
+      transform:translateX(-50%);
+      background:var(--red-dim); border:1px solid var(--red);
+      padding:.35rem .8rem;
+      font-size:.7rem; letter-spacing:.1em;
+      color:var(--red-hi);
+      opacity:0; transition:opacity .2s;
+      pointer-events:none; white-space:nowrap;
+      z-index:9999;
+      text-shadow: var(--glow-red);
     }
-    #toast.show { opacity: 1; }
+    #toast.show { opacity:1; }
   </style>
 </head>
 <body>
 
-<h1>Thunder Control</h1>
-
-<div id="status">
-  <div class="dot" id="dot"></div>
-  <div class="status-item">Missiles: <span id="s-missiles">-</span></div>
-  <div class="status-item">Yaw: <span id="s-yaw">-</span></div>
-  <div class="status-item">Pitch: <span id="s-pitch">-</span></div>
-</div>
-
-<div id="dpad">
-  <button class="dpad-btn" data-dir="up">▲</button>
-  <button class="dpad-btn" data-dir="left">◀</button>
-  <button class="dpad-btn" data-dir="right">▶</button>
-  <button class="dpad-btn" data-dir="down">▼</button>
-</div>
-
-<div id="sliders">
-  <div class="slider-row">
-    <span class="slider-label">Yaw</span>
-    <input type="range" id="yaw-slider" min="-135" max="135" value="0">
-    <span class="slider-value" id="yaw-val">0°</span>
+<div class="hdr">
+  <div class="hdr-bar">
+    <div class="hdr-line"></div>
+    <h1>THUNDER CONTROL</h1>
+    <div class="hdr-line"></div>
   </div>
-  <div class="slider-row">
-    <span class="slider-label">Pitch</span>
-    <input type="range" id="pitch-slider" min="-5" max="45" value="0">
-    <span class="slider-value" id="pitch-val">0°</span>
+  <div class="hdr-sub">DREAM CHEEKY MK.I &nbsp;//&nbsp; TARGETING SYSTEM v1.0</div>
+</div>
+
+<!-- System status -->
+<div class="panel">
+  <span class="p-tag">SYS STATUS</span>
+  <div class="status-row">
+    <div class="dot-cell"><div class="dot" id="dot"></div></div>
+    <div class="sf">
+      <span class="sf-l">AMMO</span>
+      <span class="sf-v" id="s-missiles">-</span>
+    </div>
+    <div class="sf">
+      <span class="sf-l">YAW</span>
+      <span class="sf-v" id="s-yaw">-</span>
+    </div>
+    <div class="sf">
+      <span class="sf-l">PITCH</span>
+      <span class="sf-v" id="s-pitch">-</span>
+    </div>
   </div>
 </div>
 
-<div id="actions">
-  <button class="btn" id="fire-btn">🚀 FIRE</button>
-  <button class="btn" id="park-btn">⌂ Park</button>
-  <button class="btn" id="reload-btn">↺ Reload</button>
-  <button class="btn" id="led-btn">● LED</button>
+<!-- Targeting reticle / D-pad -->
+<div class="panel">
+  <span class="p-tag">TARGETING</span>
+  <div class="target-body">
+    <div class="reticle">
+      <div class="r-ring-outer"></div>
+      <div class="r-ring-mid"></div>
+      <div class="r-spin-1"></div>
+      <div class="r-spin-2"></div>
+      <div class="r-h"></div>
+      <div class="r-v"></div>
+      <span class="r-deg r-deg-n">000</span>
+      <span class="r-deg r-deg-e">090</span>
+      <span class="r-deg r-deg-s">180</span>
+      <span class="r-deg r-deg-w">270</span>
+      <div class="r-ctr"></div>
+      <button class="dpad-btn" data-dir="up">▲</button>
+      <button class="dpad-btn" data-dir="left">◀</button>
+      <button class="dpad-btn" data-dir="right">▶</button>
+      <button class="dpad-btn" data-dir="down">▼</button>
+    </div>
+  </div>
+</div>
+
+<!-- Angle gauges -->
+<div class="panel">
+  <span class="p-tag">ANGLES</span>
+  <div class="gauges-body">
+    <div class="g-row">
+      <span class="g-lbl">YAW</span>
+      <div class="g-track">
+        <input type="range" id="yaw-slider" min="-135" max="135" value="0">
+      </div>
+      <span class="g-val" id="yaw-val">0°</span>
+    </div>
+    <div class="g-row">
+      <span class="g-lbl">PITCH</span>
+      <div class="g-track">
+        <input type="range" id="pitch-slider" min="-5" max="45" value="0">
+      </div>
+      <span class="g-val" id="pitch-val">0°</span>
+    </div>
+  </div>
+</div>
+
+<!-- Secondary controls -->
+<div class="panel">
+  <span class="p-tag">CONTROLS</span>
+  <div class="ctrl-body">
+    <button class="btn" id="park-btn">⌂ PARK</button>
+    <button class="btn" id="reload-btn">↺ RELOAD</button>
+    <button class="btn" id="led-btn">◉ LED</button>
+  </div>
+</div>
+
+<!-- Fire -->
+<div class="panel">
+  <span class="p-tag">WEAPONS</span>
+  <div class="fire-body">
+    <button id="fire-btn">⚡ FIRE ⚡</button>
+  </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
-  // State
   let ledOn = false;
 
-  // DOM refs
-  const dot       = document.getElementById('dot');
-  const sMissiles = document.getElementById('s-missiles');
-  const sYaw      = document.getElementById('s-yaw');
-  const sPitch    = document.getElementById('s-pitch');
-  const yawSlider = document.getElementById('yaw-slider');
-  const yawVal    = document.getElementById('yaw-val');
+  const dot         = document.getElementById('dot');
+  const sMissiles   = document.getElementById('s-missiles');
+  const sYaw        = document.getElementById('s-yaw');
+  const sPitch      = document.getElementById('s-pitch');
+  const yawSlider   = document.getElementById('yaw-slider');
+  const yawVal      = document.getElementById('yaw-val');
   const pitchSlider = document.getElementById('pitch-slider');
-  const pitchVal  = document.getElementById('pitch-val');
-  const ledBtn    = document.getElementById('led-btn');
-  const toast     = document.getElementById('toast');
+  const pitchVal    = document.getElementById('pitch-val');
+  const ledBtn      = document.getElementById('led-btn');
+  const toast       = document.getElementById('toast');
 
-  // API helper
+  function updateSliderTrack(slider) {
+    const min = +slider.min, max = +slider.max, val = +slider.value;
+    const pct = ((val - min) / (max - min)) * 100;
+    slider.style.background = `linear-gradient(to right, #ffaa00 ${pct}%, #4a3000 ${pct}%)`;
+  }
+  updateSliderTrack(yawSlider);
+  updateSliderTrack(pitchSlider);
+
   async function api(method, path, params = {}) {
     const url = new URL(path, location.href);
     Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
@@ -276,10 +537,12 @@
   function applyState(s) {
     dot.className = 'dot' + (s.connected ? ' connected' : '');
     sMissiles.textContent = s.missiles;
-    sYaw.textContent   = s.yaw + '°';
-    sPitch.textContent = s.pitch + '°';
-    yawSlider.value  = s.yaw;   yawVal.textContent   = s.yaw + '°';
-    pitchSlider.value = s.pitch; pitchVal.textContent = s.pitch + '°';
+    sYaw.textContent      = s.yaw + '°';
+    sPitch.textContent    = s.pitch + '°';
+    yawSlider.value       = s.yaw;   yawVal.textContent   = s.yaw + '°';
+    pitchSlider.value     = s.pitch; pitchVal.textContent = s.pitch + '°';
+    updateSliderTrack(yawSlider);
+    updateSliderTrack(pitchSlider);
   }
 
   function showToast(msg) {
@@ -288,17 +551,15 @@
     setTimeout(() => toast.classList.remove('show'), 3000);
   }
 
-  // Status polling
   async function poll() {
     try {
       const res = await fetch('/status');
       if (res.ok) applyState(await res.json());
-    } catch { /* server unreachable */ }
+    } catch {}
   }
   poll();
   setInterval(poll, 3000);
 
-  // D-pad: hold to repeat moves
   let moveTimer = null;
   let activeDir = null;
 
@@ -323,38 +584,34 @@
   document.querySelectorAll('.dpad-btn').forEach(btn => {
     const dir = btn.dataset.dir;
     btn.addEventListener('mousedown',  () => startMove(dir));
-    btn.addEventListener('touchstart', (e) => { e.preventDefault(); startMove(dir); }, { passive: false });
+    btn.addEventListener('touchstart', e => { e.preventDefault(); startMove(dir); }, { passive: false });
   });
 
   document.addEventListener('mouseup',  stopMove);
   document.addEventListener('touchend', stopMove);
 
-  // Yaw/pitch sliders: debounce to avoid flooding the API while dragging
-  let yawTimer = null;
   yawSlider.addEventListener('input', () => {
     yawVal.textContent = yawSlider.value + '°';
-    clearTimeout(yawTimer);
-    yawTimer = setTimeout(() => api('POST', `/yaw/${yawSlider.value}`), 300);
+    updateSliderTrack(yawSlider);
+    clearTimeout(yawSlider._t);
+    yawSlider._t = setTimeout(() => api('POST', `/yaw/${yawSlider.value}`), 300);
   });
 
-  let pitchTimer = null;
   pitchSlider.addEventListener('input', () => {
     pitchVal.textContent = pitchSlider.value + '°';
-    clearTimeout(pitchTimer);
-    pitchTimer = setTimeout(() => api('POST', `/pitch/${pitchSlider.value}`), 300);
+    updateSliderTrack(pitchSlider);
+    clearTimeout(pitchSlider._t);
+    pitchSlider._t = setTimeout(() => api('POST', `/pitch/${pitchSlider.value}`), 300);
   });
 
-  // Action buttons
-  document.getElementById('fire-btn').addEventListener('click', () => api('POST', '/fire'));
-  document.getElementById('park-btn').addEventListener('click', () => api('POST', '/park'));
+  document.getElementById('fire-btn').addEventListener('click',   () => api('POST', '/fire'));
+  document.getElementById('park-btn').addEventListener('click',   () => api('POST', '/park'));
   document.getElementById('reload-btn').addEventListener('click', () => api('POST', '/reload'));
-
   ledBtn.addEventListener('click', () => {
     ledOn = !ledOn;
     api('POST', '/led', { on: ledOn });
     ledBtn.classList.toggle('on', ledOn);
   });
 </script>
-
 </body>
 </html>

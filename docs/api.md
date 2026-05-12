@@ -1,8 +1,10 @@
-# API Reference
+# 📡 API Reference
 
 Interactive documentation (Swagger UI) is available at `http://localhost:8000/docs` while the server is running.
 
-## Response format
+![Swagger UI](swagger.jpg)
+
+## 📦 Response format
 
 All endpoints return the current device state as JSON:
 
@@ -17,21 +19,21 @@ All endpoints return the current device state as JSON:
 
 `connected` reflects whether the server currently has an open USB connection to the launcher. Hardware endpoints return HTTP 503 if the device is not present.
 
-## Endpoints
+## 🗺️ Endpoints
 
 | Method | Path | Query params | Description |
 |--------|------|--------------|-------------|
-| GET | `/` | | Web UI |
-| GET | `/status` | | Current device state |
-| POST | `/park` | | Drive to home position (bottom-left hard stop) |
-| POST | `/move/{direction}` | `duration` (ms, default 500) | Raw move: `up`, `down`, `left`, `right` |
-| POST | `/yaw/{angle}` | | Rotate to horizontal angle (-135 to 135) |
-| POST | `/pitch/{angle}` | | Tilt to vertical angle (-5 to 45) |
-| POST | `/fire` | `shots` (default 1) | Fire N shots sequentially |
-| POST | `/led` | `on` (`true`/`false`) | Toggle the LED ring |
-| POST | `/reload` | | Reset missile count after manual reload |
+| GET | `/` | | 🖥️ Web UI |
+| GET | `/status` | | 📊 Current device state |
+| POST | `/park` | | 🏠 Drive to home position (bottom-left hard stop) |
+| POST | `/move/{direction}` | `duration` (ms, default 500) | 🕹️ Raw move: `up`, `down`, `left`, `right` |
+| POST | `/yaw/{angle}` | | ↔️ Rotate to horizontal angle (-135 to 135) |
+| POST | `/pitch/{angle}` | | ↕️ Tilt to vertical angle (-5 to 45) |
+| POST | `/fire` | `shots` (default 1) | 🚀 Fire N shots sequentially |
+| POST | `/led` | `on` (`true`/`false`) | 💡 Toggle the LED ring |
+| POST | `/reload` | | 🔄 Reset missile count after manual reload |
 
-## Examples
+## 💡 Examples
 
 ```bash
 # Check device status
@@ -57,7 +59,7 @@ curl -X POST "http://localhost:8000/led?on=true"
 curl -X POST http://localhost:8000/reload
 ```
 
-## Position tracking
+## 📍 Position tracking
 
 Angle tracking is time-based and approximate. The server estimates the current angle by recording how long the motors have been running. Accuracy degrades if the launcher is bumped or a command is interrupted.
 
