@@ -80,24 +80,28 @@ class Launcher:
     async def yaw(self, angle: int) -> None:
         """Rotate horizontally to a target angle relative to the current estimated position."""
         angle = max(YAW_MIN_ANGLE, min(YAW_MAX_ANGLE, angle))
-        delta = angle - self._yaw
-        if delta == 0:
-            return
-        duration_ms = int(abs(delta) * _YAW_MS_PER_DEGREE)
-        direction = "right" if delta > 0 else "left"
-        await self.move(direction, duration_ms)
-        self._yaw = angle
+        async with self._lock:
+            delta = angle - self._yaw
+            if delta == 0:
+                return
+            duration_ms = int(abs(delta) * _YAW_MS_PER_DEGREE)
+            self._send(Cmd.RIGHT if delta > 0 else Cmd.LEFT)
+            await asyncio.sleep(duration_ms / 1000)
+            self._send(Cmd.STOP)
+            self._yaw = angle
 
     async def pitch(self, angle: int) -> None:
         """Tilt vertically to a target angle relative to the current estimated position."""
         angle = max(PITCH_MIN_ANGLE, min(PITCH_MAX_ANGLE, angle))
-        delta = angle - self._pitch
-        if delta == 0:
-            return
-        duration_ms = int(abs(delta) * _PITCH_MS_PER_DEGREE)
-        direction = "up" if delta > 0 else "down"
-        await self.move(direction, duration_ms)
-        self._pitch = angle
+        async with self._lock:
+            delta = angle - self._pitch
+            if delta == 0:
+                return
+            duration_ms = int(abs(delta) * _PITCH_MS_PER_DEGREE)
+            self._send(Cmd.UP if delta > 0 else Cmd.DOWN)
+            await asyncio.sleep(duration_ms / 1000)
+            self._send(Cmd.STOP)
+            self._pitch = angle
 
     async def fire(self, shots: int = 1) -> None:
         """Fire N shots sequentially, waiting for the reload cycle between each."""
