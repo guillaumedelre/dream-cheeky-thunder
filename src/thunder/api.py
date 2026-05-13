@@ -10,10 +10,11 @@ import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query, status
+from fastapi import FastAPI, HTTPException, Query, Request, status
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from .device import DeviceNotFoundError, ThunderDevice
+from .device import DeviceDisconnectedError, DeviceNotFoundError, ThunderDevice
 from .launcher import Launcher, LauncherState, NotEnoughMissilesError
 
 _device = ThunderDevice()
@@ -35,6 +36,11 @@ app = FastAPI(
     version="1.0.0",
     lifespan=_lifespan,
 )
+
+
+@app.exception_handler(DeviceDisconnectedError)
+async def device_disconnected_handler(request: Request, exc: DeviceDisconnectedError) -> JSONResponse:
+    return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={"detail": str(exc)})
 
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 
