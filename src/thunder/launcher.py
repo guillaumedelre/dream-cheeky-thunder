@@ -132,9 +132,9 @@ class Launcher:
             self._send(Cmd.DOWN)
             await asyncio.sleep(PITCH_TOTAL_DURATION_MS / 1000)
             self._send(Cmd.STOP)
-        # After hitting the hard stops, we are definitively at the minimum angles.
-        self._yaw = YAW_MIN_ANGLE
-        self._pitch = PITCH_MIN_ANGLE
+            # After hitting the hard stops, we are definitively at the minimum angles.
+            self._yaw = YAW_MIN_ANGLE
+            self._pitch = PITCH_MIN_ANGLE
 
     def led(self, on: bool) -> None:
         """Toggle the blue LED ring on the launcher base."""
