@@ -116,10 +116,10 @@ async def led(on: bool) -> LauncherState:
 
 
 @app.post("/reload", summary="Reset missile count after manual reload")
-def reload() -> LauncherState:
+async def reload() -> LauncherState:
     """
     Notify the server that the launcher has been physically reloaded.
     Resets the missile counter to 4. Does not move the launcher.
     """
-    _launcher.reload()
+    await _launcher.reload()
     return _launcher.state

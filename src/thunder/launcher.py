@@ -152,6 +152,7 @@ class Launcher:
         async with self._lock:
             await asyncio.to_thread(self._device.send, payload)
 
-    def reload(self) -> None:
+    async def reload(self) -> None:
         """Reset the missile counter after manually reloading the launcher."""
-        self._missiles = MISSILE_COUNT
+        async with self._lock:
+            self._missiles = MISSILE_COUNT
