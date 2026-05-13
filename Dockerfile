@@ -8,10 +8,12 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 WORKDIR /app
 
-COPY pyproject.toml .
+COPY pyproject.toml uv.lock ./
 COPY src/ src/
 
-RUN uv pip install --system --no-cache .
+RUN uv sync --frozen --no-dev --no-cache
+
+ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 8000
 
