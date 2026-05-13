@@ -16,6 +16,7 @@ from fastapi import FastAPI, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from .constants import MISSILE_COUNT
 from .device import DeviceDisconnectedError, DeviceNotFoundError, ThunderDevice
 from .launcher import Launcher, LauncherState, NotEnoughMissilesError
 
@@ -104,7 +105,7 @@ async def pitch(angle: int) -> LauncherState:
 
 
 @app.post("/fire", summary="Fire N shots")
-async def fire(shots: int = 1) -> LauncherState:
+async def fire(shots: int = Query(default=1, ge=1, le=MISSILE_COUNT)) -> LauncherState:
     """
     Fire the specified number of shots sequentially.
     Returns 422 if there are not enough missiles remaining.
