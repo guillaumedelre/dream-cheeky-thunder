@@ -39,13 +39,24 @@ Or download the MSI from the [releases page][usbipd-releases].
 usbipd list
 ```
 
-Look for `2123:1010` in the VID:PID column. Note its `BUSID` (e.g. `19-2`).
+Example output:
+
+```
+BUSID  VID:PID    DEVICE                        STATE
+2-1    046d:c52b  USB Input Device              Not shared
+20-2   2123:1010  Dream Cheeky Thunder          Not shared
+20-4   8087:0026  Intel Wireless Bluetooth      Not shared
+```
+
+Look for `2123:1010` in the `VID:PID` column. Note the corresponding `BUSID` (here `20-2`).
 
 **3. Attach to WSL2** (PowerShell):
 
 ```powershell
-usbipd attach --wsl --busid <BUSID>
+usbipd attach --wsl --busid 20-2
 ```
+
+Replace `20-2` with the `BUSID` from step 2. The `STATE` column should switch to `Attached` after this command.
 
 **4. Install the udev rule** (WSL2 terminal, one-time):
 
