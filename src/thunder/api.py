@@ -55,7 +55,7 @@ def index():
 
 
 @app.get("/status", summary="Device status")
-def get_status() -> LauncherState:
+async def get_status() -> LauncherState:
     """Return the current device state: connection status, missile count, and estimated angles."""
     return _launcher.state
 
