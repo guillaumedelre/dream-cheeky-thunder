@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Query, Request, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .constants import MISSILE_COUNT
@@ -50,7 +50,6 @@ app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), na
 
 @app.get("/", summary="UI", include_in_schema=False)
 def index():
-    from fastapi.responses import FileResponse
     return FileResponse(Path(__file__).parent / "static" / "index.html")
 
 
