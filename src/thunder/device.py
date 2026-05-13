@@ -61,6 +61,8 @@ class ThunderDevice:
 
     def send(self, payload: list[int]) -> None:
         """Send an 8-byte control transfer to the launcher."""
+        if len(payload) != 8:
+            raise ValueError(f"USB payload must be exactly 8 bytes, got {len(payload)}")
         if self._dev is None:
             raise RuntimeError("Device not connected")
         try:
