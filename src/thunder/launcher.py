@@ -136,10 +136,12 @@ class Launcher:
             self._yaw = YAW_MIN_ANGLE
             self._pitch = PITCH_MIN_ANGLE
 
-    def led(self, on: bool) -> None:
+    async def led(self, on: bool) -> None:
         """Toggle the blue LED ring on the launcher base."""
         # LED uses HID report ID 0x03, distinct from the movement report (0x02).
-        self._device.send([0x03, Led.ON if on else Led.OFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+        payload = [0x03, Led.ON if on else Led.OFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+        async with self._lock:
+            await asyncio.to_thread(self._device.send, payload)
 
     def reload(self) -> None:
         """Reset the missile counter after manually reloading the launcher."""
