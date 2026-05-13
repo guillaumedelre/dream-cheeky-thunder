@@ -14,7 +14,7 @@ from fastapi import FastAPI, HTTPException, Query, status
 from fastapi.staticfiles import StaticFiles
 
 from .device import DeviceNotFoundError, ThunderDevice
-from .launcher import Launcher, NotEnoughMissilesError
+from .launcher import Launcher, LauncherState, NotEnoughMissilesError
 
 _device = ThunderDevice()
 _launcher = Launcher(_device)
@@ -46,20 +46,20 @@ def index():
 
 
 @app.get("/status", summary="Device status")
-def get_status() -> dict:
+def get_status() -> LauncherState:
     """Return the current device state: connection status, missile count, and estimated angles."""
     return _launcher.state
 
 
 @app.post("/park", summary="Park the launcher at the bottom-left hard stop")
-async def park() -> dict:
+async def park() -> LauncherState:
     """Drive the launcher to its physical home position, resetting estimated angles."""
     await _launcher.park()
     return _launcher.state
 
 
 @app.post("/move/{direction}", summary="Raw directional move for a given duration")
-async def move(direction: str, duration: int = Query(default=500, ge=50, le=5000)) -> dict:
+async def move(direction: str, duration: int = Query(default=500, ge=50, le=5000)) -> LauncherState:
     """
     Move in a raw direction (`up`, `down`, `left`, `right`) for `duration` milliseconds.
 
@@ -74,7 +74,7 @@ async def move(direction: str, duration: int = Query(default=500, ge=50, le=5000
 
 
 @app.post("/yaw/{angle}", summary="Rotate horizontally to a target angle (-135 to 135)")
-async def yaw(angle: int) -> dict:
+async def yaw(angle: int) -> LauncherState:
     """
     Rotate the launcher to the given horizontal angle.
     The angle is clamped to the physical range [-135, 135].
@@ -85,7 +85,7 @@ async def yaw(angle: int) -> dict:
 
 
 @app.post("/pitch/{angle}", summary="Tilt vertically to a target angle (-5 to 45)")
-async def pitch(angle: int) -> dict:
+async def pitch(angle: int) -> LauncherState:
     """
     Tilt the launcher to the given vertical angle.
     The angle is clamped to the physical range [-5, 45].
@@ -96,7 +96,7 @@ async def pitch(angle: int) -> dict:
 
 
 @app.post("/fire", summary="Fire N shots")
-async def fire(shots: int = 1) -> dict:
+async def fire(shots: int = 1) -> LauncherState:
     """
     Fire the specified number of shots sequentially.
     Returns 422 if there are not enough missiles remaining.
@@ -109,14 +109,14 @@ async def fire(shots: int = 1) -> dict:
 
 
 @app.post("/led", summary="Toggle the LED ring on the launcher base")
-async def led(on: bool) -> dict:
+async def led(on: bool) -> LauncherState:
     """Turn the blue LED ring on (`on=true`) or off (`on=false`)."""
     await _launcher.led(on)
     return _launcher.state
 
 
 @app.post("/reload", summary="Reset missile count after manual reload")
-def reload() -> dict:
+def reload() -> LauncherState:
     """
     Notify the server that the launcher has been physically reloaded.
     Resets the missile counter to 4. Does not move the launcher.
