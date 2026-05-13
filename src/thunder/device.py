@@ -14,6 +14,10 @@ class DeviceNotFoundError(Exception):
     pass
 
 
+class DeviceDisconnectedError(Exception):
+    pass
+
+
 class ThunderDevice:
     # bmRequestType = 0x21: host-to-device, HID class request, recipient = interface (USB spec)
     _CTRL_REQUEST_TYPE = 0x21
@@ -59,9 +63,13 @@ class ThunderDevice:
         """Send an 8-byte control transfer to the launcher."""
         if self._dev is None:
             raise RuntimeError("Device not connected")
-        self._dev.ctrl_transfer(
-            self._CTRL_REQUEST_TYPE,
-            self._CTRL_REQUEST,
-            0, 0,   # wValue and wIndex are unused by this device
-            payload,
-        )
+        try:
+            self._dev.ctrl_transfer(
+                self._CTRL_REQUEST_TYPE,
+                self._CTRL_REQUEST,
+                0, 0,   # wValue and wIndex are unused by this device
+                payload,
+            )
+        except usb.core.USBError as exc:
+            self._dev = None
+            raise DeviceDisconnectedError("Launcher disconnected during transfer") from exc
