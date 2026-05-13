@@ -9,6 +9,8 @@ to reset to a known physical position before any precision targeting.
 
 import asyncio
 
+from pydantic import BaseModel
+
 from .constants import (
     Cmd,
     Led,
@@ -28,6 +30,13 @@ _YAW_MS_PER_DEGREE = YAW_TOTAL_DURATION_MS / (YAW_MAX_ANGLE - YAW_MIN_ANGLE)
 _PITCH_MS_PER_DEGREE = PITCH_TOTAL_DURATION_MS / (PITCH_MAX_ANGLE - PITCH_MIN_ANGLE)
 
 
+class LauncherState(BaseModel):
+    connected: bool
+    missiles: int
+    yaw: int
+    pitch: int
+
+
 class NotEnoughMissilesError(Exception):
     pass
 
@@ -44,14 +53,14 @@ class Launcher:
         self._pitch = 0
 
     @property
-    def state(self) -> dict:
+    def state(self) -> LauncherState:
         """Returns the current estimated device state."""
-        return {
-            "connected": self._device.connected,
-            "missiles": self._missiles,
-            "yaw": self._yaw,
-            "pitch": self._pitch,
-        }
+        return LauncherState(
+            connected=self._device.connected,
+            missiles=self._missiles,
+            yaw=self._yaw,
+            pitch=self._pitch,
+        )
 
     async def _send(self, cmd: int, extra: int = 0x00) -> None:
         # The device protocol requires an 8-byte payload.
