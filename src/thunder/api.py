@@ -10,10 +10,14 @@ import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query, status
+from typing import Literal
+
+from fastapi import FastAPI, HTTPException, Query, Request, status
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from .device import DeviceNotFoundError, ThunderDevice
+from .constants import MISSILE_COUNT
+from .device import DeviceDisconnectedError, DeviceNotFoundError, ThunderDevice
 from .launcher import Launcher, LauncherState, NotEnoughMissilesError
 
 _device = ThunderDevice()
@@ -36,17 +40,21 @@ app = FastAPI(
     lifespan=_lifespan,
 )
 
+
+@app.exception_handler(DeviceDisconnectedError)
+async def device_disconnected_handler(request: Request, exc: DeviceDisconnectedError) -> JSONResponse:
+    return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={"detail": str(exc)})
+
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 
 
 @app.get("/", summary="UI", include_in_schema=False)
 def index():
-    from fastapi.responses import FileResponse
     return FileResponse(Path(__file__).parent / "static" / "index.html")
 
 
 @app.get("/status", summary="Device status")
-def get_status() -> LauncherState:
+async def get_status() -> LauncherState:
     """Return the current device state: connection status, missile count, and estimated angles."""
     return _launcher.state
 
@@ -59,17 +67,17 @@ async def park() -> LauncherState:
 
 
 @app.post("/move/{direction}", summary="Raw directional move for a given duration")
-async def move(direction: str, duration: int = Query(default=500, ge=50, le=5000)) -> LauncherState:
+async def move(
+    direction: Literal["up", "down", "left", "right"],
+    duration: int = Query(default=500, ge=50, le=5000),
+) -> LauncherState:
     """
     Move in a raw direction (`up`, `down`, `left`, `right`) for `duration` milliseconds.
 
     Does not update the estimated yaw/pitch angles. Use `/yaw` and `/pitch` for
     angle-aware positioning.
     """
-    try:
-        await _launcher.move(direction, duration)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    await _launcher.move(direction, duration)
     return _launcher.state
 
 
@@ -96,7 +104,7 @@ async def pitch(angle: int) -> LauncherState:
 
 
 @app.post("/fire", summary="Fire N shots")
-async def fire(shots: int = 1) -> LauncherState:
+async def fire(shots: int = Query(default=1, ge=1, le=MISSILE_COUNT)) -> LauncherState:
     """
     Fire the specified number of shots sequentially.
     Returns 422 if there are not enough missiles remaining.
@@ -116,10 +124,10 @@ async def led(on: bool) -> LauncherState:
 
 
 @app.post("/reload", summary="Reset missile count after manual reload")
-def reload() -> LauncherState:
+async def reload() -> LauncherState:
     """
     Notify the server that the launcher has been physically reloaded.
     Resets the missile counter to 4. Does not move the launcher.
     """
-    _launcher.reload()
+    await _launcher.reload()
     return _launcher.state

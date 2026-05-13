@@ -35,6 +35,7 @@ class LauncherState(BaseModel):
     missiles: int
     yaw: int
     pitch: int
+    led: bool
 
 
 class NotEnoughMissilesError(Exception):
@@ -51,6 +52,7 @@ class Launcher:
         # Assumed starting position; call park() to synchronize with physical reality.
         self._yaw = 0
         self._pitch = 0
+        self._led = False
 
     @property
     def state(self) -> LauncherState:
@@ -60,6 +62,7 @@ class Launcher:
             missiles=self._missiles,
             yaw=self._yaw,
             pitch=self._pitch,
+            led=self._led,
         )
 
     async def _send(self, cmd: int, extra: int = 0x00) -> None:
@@ -151,7 +154,9 @@ class Launcher:
         payload = [0x03, Led.ON if on else Led.OFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         async with self._lock:
             await asyncio.to_thread(self._device.send, payload)
+            self._led = on
 
-    def reload(self) -> None:
+    async def reload(self) -> None:
         """Reset the missile counter after manually reloading the launcher."""
-        self._missiles = MISSILE_COUNT
+        async with self._lock:
+            self._missiles = MISSILE_COUNT
