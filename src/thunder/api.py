@@ -6,6 +6,7 @@ single resource that cannot be controlled by two requests simultaneously
 (the Launcher's asyncio.Lock enforces this at the command level).
 """
 
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -22,11 +23,11 @@ _launcher = Launcher(_device)
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     try:
-        _device.connect()
+        await asyncio.to_thread(_device.connect)
     except DeviceNotFoundError as exc:
         raise RuntimeError(str(exc)) from exc
     yield
-    _device.disconnect()
+    await asyncio.to_thread(_device.disconnect)
 
 
 app = FastAPI(
