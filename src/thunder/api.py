@@ -109,9 +109,9 @@ async def fire(shots: int = 1) -> dict:
 
 
 @app.post("/led", summary="Toggle the LED ring on the launcher base")
-def led(on: bool) -> dict:
+async def led(on: bool) -> dict:
     """Turn the blue LED ring on (`on=true`) or off (`on=false`)."""
-    _launcher.led(on)
+    await _launcher.led(on)
     return _launcher.state
 
 
