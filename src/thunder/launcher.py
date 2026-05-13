@@ -9,6 +9,8 @@ to reset to a known physical position before any precision targeting.
 
 import asyncio
 
+from pydantic import BaseModel
+
 from .constants import (
     Cmd,
     Led,
@@ -28,6 +30,13 @@ _YAW_MS_PER_DEGREE = YAW_TOTAL_DURATION_MS / (YAW_MAX_ANGLE - YAW_MIN_ANGLE)
 _PITCH_MS_PER_DEGREE = PITCH_TOTAL_DURATION_MS / (PITCH_MAX_ANGLE - PITCH_MIN_ANGLE)
 
 
+class LauncherState(BaseModel):
+    connected: bool
+    missiles: int
+    yaw: int
+    pitch: int
+
+
 class NotEnoughMissilesError(Exception):
     pass
 
@@ -44,21 +53,21 @@ class Launcher:
         self._pitch = 0
 
     @property
-    def state(self) -> dict:
+    def state(self) -> LauncherState:
         """Returns the current estimated device state."""
-        return {
-            "connected": self._device.connected,
-            "missiles": self._missiles,
-            "yaw": self._yaw,
-            "pitch": self._pitch,
-        }
+        return LauncherState(
+            connected=self._device.connected,
+            missiles=self._missiles,
+            yaw=self._yaw,
+            pitch=self._pitch,
+        )
 
-    def _send(self, cmd: int, extra: int = 0x00) -> None:
+    async def _send(self, cmd: int, extra: int = 0x00) -> None:
         # The device protocol requires an 8-byte payload.
         # Byte 0 is always 0x02 (fixed protocol header).
         # Byte 1 is the command. Byte 2 is an optional parameter (used for LED state).
         # Bytes 3-7 are always zero.
-        self._device.send([0x02, cmd, extra, 0x00, 0x00, 0x00, 0x00, 0x00])
+        await asyncio.to_thread(self._device.send, [0x02, cmd, extra, 0x00, 0x00, 0x00, 0x00, 0x00])
 
     async def move(self, direction: str, duration_ms: int) -> None:
         """Move in a raw direction for a fixed duration, then stop."""
@@ -72,32 +81,36 @@ class Launcher:
         if cmd is None:
             raise ValueError(f"Unknown direction '{direction}'. Valid: up, down, left, right.")
         async with self._lock:
-            self._send(cmd)
+            await self._send(cmd)
             # Hold the motor running for the requested duration, then send STOP.
             await asyncio.sleep(duration_ms / 1000)
-            self._send(Cmd.STOP)
+            await self._send(Cmd.STOP)
 
     async def yaw(self, angle: int) -> None:
         """Rotate horizontally to a target angle relative to the current estimated position."""
         angle = max(YAW_MIN_ANGLE, min(YAW_MAX_ANGLE, angle))
-        delta = angle - self._yaw
-        if delta == 0:
-            return
-        duration_ms = int(abs(delta) * _YAW_MS_PER_DEGREE)
-        direction = "right" if delta > 0 else "left"
-        await self.move(direction, duration_ms)
-        self._yaw = angle
+        async with self._lock:
+            delta = angle - self._yaw
+            if delta == 0:
+                return
+            duration_ms = int(abs(delta) * _YAW_MS_PER_DEGREE)
+            await self._send(Cmd.RIGHT if delta > 0 else Cmd.LEFT)
+            await asyncio.sleep(duration_ms / 1000)
+            await self._send(Cmd.STOP)
+            self._yaw = angle
 
     async def pitch(self, angle: int) -> None:
         """Tilt vertically to a target angle relative to the current estimated position."""
         angle = max(PITCH_MIN_ANGLE, min(PITCH_MAX_ANGLE, angle))
-        delta = angle - self._pitch
-        if delta == 0:
-            return
-        duration_ms = int(abs(delta) * _PITCH_MS_PER_DEGREE)
-        direction = "up" if delta > 0 else "down"
-        await self.move(direction, duration_ms)
-        self._pitch = angle
+        async with self._lock:
+            delta = angle - self._pitch
+            if delta == 0:
+                return
+            duration_ms = int(abs(delta) * _PITCH_MS_PER_DEGREE)
+            await self._send(Cmd.UP if delta > 0 else Cmd.DOWN)
+            await asyncio.sleep(duration_ms / 1000)
+            await self._send(Cmd.STOP)
+            self._pitch = angle
 
     async def fire(self, shots: int = 1) -> None:
         """Fire N shots sequentially, waiting for the reload cycle between each."""
@@ -109,7 +122,7 @@ class Launcher:
             )
         async with self._lock:
             for _ in range(shots):
-                self._send(Cmd.FIRE)
+                await self._send(Cmd.FIRE)
                 # The launcher needs RELOAD_DELAY_MS to mechanically advance
                 # to the next missile before it can accept another FIRE command.
                 await asyncio.sleep(RELOAD_DELAY_MS / 1000)
@@ -123,19 +136,21 @@ class Launcher:
         of where the launcher actually was.
         """
         async with self._lock:
-            self._send(Cmd.LEFT)
+            await self._send(Cmd.LEFT)
             await asyncio.sleep(YAW_TOTAL_DURATION_MS / 1000)
-            self._send(Cmd.DOWN)
+            await self._send(Cmd.DOWN)
             await asyncio.sleep(PITCH_TOTAL_DURATION_MS / 1000)
-            self._send(Cmd.STOP)
-        # After hitting the hard stops, we are definitively at the minimum angles.
-        self._yaw = YAW_MIN_ANGLE
-        self._pitch = PITCH_MIN_ANGLE
+            await self._send(Cmd.STOP)
+            # After hitting the hard stops, we are definitively at the minimum angles.
+            self._yaw = YAW_MIN_ANGLE
+            self._pitch = PITCH_MIN_ANGLE
 
-    def led(self, on: bool) -> None:
+    async def led(self, on: bool) -> None:
         """Toggle the blue LED ring on the launcher base."""
         # LED uses HID report ID 0x03, distinct from the movement report (0x02).
-        self._device.send([0x03, Led.ON if on else Led.OFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+        payload = [0x03, Led.ON if on else Led.OFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+        async with self._lock:
+            await asyncio.to_thread(self._device.send, payload)
 
     def reload(self) -> None:
         """Reset the missile counter after manually reloading the launcher."""

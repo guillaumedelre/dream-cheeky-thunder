@@ -1,3 +1,5 @@
+from enum import IntEnum
+
 # Hardware identifiers for the Dream Cheeky Thunder USB missile launcher.
 # These values are fixed by the manufacturer and cannot be changed.
 VENDOR_ID = 0x2123
@@ -21,7 +23,7 @@ MISSILE_COUNT = 4
 RELOAD_DELAY_MS = 4500
 
 
-class Cmd:
+class Cmd(IntEnum):
     """Raw command bytes sent in the USB control transfer payload (byte index 1)."""
     DOWN = 0x01
     UP = 0x02
@@ -31,7 +33,7 @@ class Cmd:
     STOP = 0x20
 
 
-class Led:
-    """LED state values sent as the extra byte (byte index 2) alongside Cmd.LED."""
+class Led(IntEnum):
+    """LED state values sent as the extra byte (byte index 2) in report 0x03."""
     OFF = 0x00
     ON = 0x01

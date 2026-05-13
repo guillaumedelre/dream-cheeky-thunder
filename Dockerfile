@@ -4,14 +4,16 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends libusb-1.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.11.14 /uv /usr/local/bin/uv
 
 WORKDIR /app
 
-COPY pyproject.toml .
+COPY pyproject.toml uv.lock ./
 COPY src/ src/
 
-RUN uv pip install --system --no-cache .
+RUN uv sync --frozen --no-dev --no-cache
+
+ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 8000
 
