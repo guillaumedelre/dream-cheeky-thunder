@@ -6,3 +6,9 @@ services:
     devices:
       - /dev/bus/usb:/dev/bus/usb
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/status')"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
