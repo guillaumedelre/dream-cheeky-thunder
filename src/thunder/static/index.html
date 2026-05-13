@@ -560,6 +560,8 @@
     pitchSlider.value     = s.pitch; pitchVal.textContent = s.pitch + '°';
     updateSliderTrack(yawSlider);
     updateSliderTrack(pitchSlider);
+    ledOn = s.led;
+    ledBtn.classList.toggle('on', ledOn);
   }
 
   function showToast(msg) {
