@@ -10,6 +10,8 @@ import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+from typing import Literal
+
 from fastapi import FastAPI, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -65,17 +67,17 @@ async def park() -> LauncherState:
 
 
 @app.post("/move/{direction}", summary="Raw directional move for a given duration")
-async def move(direction: str, duration: int = Query(default=500, ge=50, le=5000)) -> LauncherState:
+async def move(
+    direction: Literal["up", "down", "left", "right"],
+    duration: int = Query(default=500, ge=50, le=5000),
+) -> LauncherState:
     """
     Move in a raw direction (`up`, `down`, `left`, `right`) for `duration` milliseconds.
 
     Does not update the estimated yaw/pitch angles. Use `/yaw` and `/pitch` for
     angle-aware positioning.
     """
-    try:
-        await _launcher.move(direction, duration)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    await _launcher.move(direction, duration)
     return _launcher.state
 
 
