@@ -10,7 +10,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Query, status
 from fastapi.staticfiles import StaticFiles
 
 from .device import DeviceNotFoundError, ThunderDevice
@@ -59,7 +59,7 @@ async def park() -> dict:
 
 
 @app.post("/move/{direction}", summary="Raw directional move for a given duration")
-async def move(direction: str, duration: int = 500) -> dict:
+async def move(direction: str, duration: int = Query(default=500, ge=50, le=5000)) -> dict:
     """
     Move in a raw direction (`up`, `down`, `left`, `right`) for `duration` milliseconds.
 
